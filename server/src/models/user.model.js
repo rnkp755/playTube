@@ -9,20 +9,24 @@ const userSchema = new Schema({
             unique: true,
             lowercase: true,
             trim: true,
-            index: true
+            index: true,
+            minLength: [3, "Username must be at least 3 characters long"]
       },
       email: {
             type: String,
             required: true,
             unique: true,
             lowercase: true,
-            trim: true
+            trim: true,
+            minLength: [8, "Email must be at least 8 characters long"],
+            match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Invalid email"]
       },
       fullName: {
             type: String,
             required: true,
             trim: true,
-            index: true
+            index: true,
+            minLength: [3, "Name must be at least 3 characters long"]
       },
       avatar: {
             type: String,
@@ -33,7 +37,9 @@ const userSchema = new Schema({
       },
       password: {
             type: String,
-            required: true
+            required: true,
+            minLength: [8, "Password must be at least 8 characters long"],
+            maxLength: [16, "Password must be at most 16 characters long"]
       },
       watchHistory: [
             {
@@ -72,7 +78,7 @@ userSchema.methods.generateAccessToken = async function () {
 }
 
 userSchema.methods.generateRefreshToken = async function () {
-      return await jwt.sign(
+      return jwt.sign(
             {
                   _id: this._id
             },
