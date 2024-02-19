@@ -30,6 +30,12 @@ const videoSchema = new Schema({
             type: Boolean,
             default: true
       },
+      tags: [
+            {
+                  type: String,
+                  default: "General"
+            }
+      ],
       videoOwner: {
             type: Schema.Types.ObjectId,
             ref: "User"

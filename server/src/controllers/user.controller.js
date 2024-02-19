@@ -135,7 +135,9 @@ const loginUser = asyncHandler(async (req, res) => {
 })
 
 const logoutUser = asyncHandler(async (req, res) => {
-      const user = User.findByIdAndUpdate(
+      console.log("Logout ", req.user._id);
+      // Output : Logout  undefined
+      const user = await User.findByIdAndUpdate(
             req.user._id,
             {
                   $unset: {
@@ -219,7 +221,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
 const changeUserPassword = asyncHandler(async (req, res) => {
       const { oldPassword, newPassword } = req.body;
-
+      console.log("Change Password", req.user._id);
       const user = await User.findById(req.user?._id)
       if (!user.isPasswordcorrect(oldPassword)) throw new APIError(400, "Old Password is incorrect")
 
