@@ -9,7 +9,7 @@ import { verifyJWT } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
-router.route("/:username/tweets").get(getUserTweets)
+router.route("/:username").get(getUserTweets)
 
 // Secured Route : Authentication Required
 router.route("/post-tweet").post(verifyJWT, postTweet)

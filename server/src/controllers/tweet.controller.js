@@ -44,6 +44,8 @@ const getUserTweets = asyncHandler(async (req, res) => {
             "-__v -updatedAt -createdAt -owner"
       )
 
+      if (tweets.length === 0) throw new APIError(400, "No Tweets found")
+
       return res.status(200).json(new APIResponse(200, tweets, 'User Tweets fetched successfully'))
 })
 
