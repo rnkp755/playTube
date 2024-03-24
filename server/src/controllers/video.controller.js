@@ -18,53 +18,74 @@ const extractPublicIdFromUrl = (imageURL) => {
             throw new APIError(401, "Couldn't extract Public Id")
       }
 };
-const deleteFromCloudinary = asyncHandler(async (publicId) => await cloudinary.v2.uploader.destroy(publicId))
+const deleteFromCloudinary = async (publicId) => {
+      try {
+            await cloudinary.v2.uploader.destroy(publicId)
+      } catch (error) {
+            throw error;
+      }
+}
 
 const postAVideo = asyncHandler(async (req, res) => {
-      const { title, description, tags } = req.body
-      const userId = req.user?._id
-      if (!userId) throw new APIError(401, 'Unauthorized request')
+      const { title, description, tags } = req.body;
+      const userId = req.user?._id;
 
-      const user = await User.findById(userId)
-      if (!user) throw new APIError(401, 'Unauthorized request')
-
-      const videoLocalPath = req.files?.Video[0]?.path;
-
-      let thumbnailLocalPath;
-      if (req.files && Array.isArray(req.files.thumbnail) && req.files.thumbnail.length > 0) {
-            thumbnailLocalPath = await req.files.thumbnail[0].path;
+      if (!userId) {
+            throw new APIError(401, 'Unauthorized request');
       }
 
+      const user = await User.findById(userId);
+
+      if (!user) {
+            throw new APIError(401, 'Unauthorized request');
+      }
+
+      const videoLocalPath = await req.files?.video[0]?.['path'];
+      const thumbnailLocalPath = await req.files?.thumbnail?.[0]?.['path'];
+
+      console.log("Video local Path", videoLocalPath);
       console.log("Thumbnail local Path", thumbnailLocalPath);
 
       if (!videoLocalPath) {
-            throw new APIError(400, "Video file is required")
+            throw new APIError(400, "Video file is required");
       }
 
-      const video = await uploadOnCloudinary(videoLocalPath)
-      if (!video) throw new APIError(500, "Failed to upload video")
+      const video = await uploadOnCloudinary(videoLocalPath);
+      console.log("Video", video?.url);
+      if (!video) {
+            throw new APIError(500, "Failed to upload video");
+      }
+
+      let thumbnail;
+
       if (thumbnailLocalPath) {
-            const thumbnail = await uploadOnCloudinary(thumbnailLocalPath)
-            if (!thumbnail) throw new APIError(500, "Failed to upload thumbnail")
-      }
+            thumbnail = await uploadOnCloudinary(thumbnailLocalPath);
 
+            if (!thumbnail) {
+                  throw new APIError(500, "Failed to upload thumbnail");
+            }
+      }
+      console.log("Thumbnail", thumbnail?.url);
       const thisVideo = await Video.create({
             title,
             description: description || "",
             tags: tags.split(',').map(tag => tag.trim().toLowerCase()),
-            videoUrl: video.url,
-            thumbnailUrl: thumbnail?.url || "",
+            videofile: video.url,
+            thumbnail: thumbnail?.url || "",
             videoOwner: userId
-      })
+      });
 
       const newVideo = await Video.findById(thisVideo._id).select(
             "-__v -updatedAt -createdAt"
-      )
+      );
 
-      if (!newVideo) throw new APIError(500, "Video Couldn't be uploaded")
+      if (!newVideo) {
+            throw new APIError(500, "Video Couldn't be uploaded");
+      }
 
-      return res.status(201).json(new APIResponse(201, newVideo, "Video Uploaded Successfully"))
-})
+      return res.status(201).json(new APIResponse(201, newVideo, "Video Uploaded Successfully"));
+});
+
 const deleteAVideo = asyncHandler(async (req, res) => {
       const { videoId } = req.params
       const userId = req.user?._id
@@ -78,18 +99,22 @@ const deleteAVideo = asyncHandler(async (req, res) => {
       if (!video) throw new APIError(400, "Video doesn't exist");
       else if (!video.videoOwner.equals(userId)) throw new APIError(401, "Unauthorized request")
 
-      if (video.videoUrl) {
-            const cloudinaryPublicId = extractPublicIdFromUrl(video.videoUrl);
-            await deleteFromCloudinary(cloudinaryPublicId);
+      const cloudinaryPublicId = extractPublicIdFromUrl(video.videofile);
+      deleteFromCloudinary(cloudinaryPublicId);
+
+      if (video.thumbnail) {
+            const cloudinaryPublicId = extractPublicIdFromUrl(video.thumbnail);
+            deleteFromCloudinary(cloudinaryPublicId);
       }
 
       // Delete from the database
-      await video.remove();
+      await Video.deleteOne({ _id: videoId });
 
       return res.status(200).json(new APIResponse(200, {}, "Video deleted successfully"));
 })
 const fetchAllVideos = asyncHandler(async (req, res) => {
-      const { page = 1, limit = 10, query, sortBy, sortType, username } = req.query
+      const { page = 1, limit = 10, query, sortBy, sortType } = req.query
+      const { username } = req.params
 
       if (isNaN(page) || isNaN(limit)) {
             throw new APIError(400, 'Invalid page or limit parameters');
@@ -114,18 +139,17 @@ const fetchAllVideos = asyncHandler(async (req, res) => {
             sort: {},
       };
 
+
       if (sortBy && sortType) {
             options.sort[sortBy] = sortType === 'asc' ? 1 : -1;
       }
 
       const [videos, totalVideos] = await Promise.all([
-            Video.find(queryOptions, options),
+            Video.find(queryOptions, null, options),
             Video.countDocuments(queryOptions),
       ]);
 
-      if (videos.length === 0) {
-            throw new APIError(400, 'No videos found');
-      }
+      console.log(videos);
 
       if (videos.length === 0) throw new APIError(400, "No Videos found")
 
@@ -144,17 +168,21 @@ const updateVideoDetails = asyncHandler(async (req, res) => {
       if (!video) throw new APIError(400, "Video doesn't exist");
       else if (!video.videoOwner.equals(userId)) throw new APIError(401, "Unauthorized request")
 
-      const thumbnailLocalPath = req.file?.thumbnail[0].path;
-      if (thumbnailLocalPath) {
-            thumbnail = await uploadOnCloudinary(thumbnailLocalPath)
-            if (!thumbnail) throw new APIError(500, "Failed to upload thumbnail")
-            updateFields.thumbnail = thumbnail.url;
-      }
-
       const updateFields = {};
       if (title) updateFields.title = title;
       if (description) updateFields.description = description;
       if (tags) updateFields.tags = tags.split(',').map(tag => tag.trim().toLowerCase());
+
+      const thumbnailLocalPath = req.file?.['path'];
+
+      let thumbnail;
+
+      if (thumbnailLocalPath) {
+            thumbnail = await uploadOnCloudinary(thumbnailLocalPath)
+            if (!thumbnail) throw new APIError(500, "Failed to upload thumbnail")
+            updateFields['thumbnail'] = thumbnail.url;
+            console.log(updateFields);
+      }
 
       const updatedVideo = await Video.findByIdAndUpdate(
             videoId,

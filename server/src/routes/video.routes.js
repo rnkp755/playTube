@@ -14,7 +14,7 @@ const router = Router();
 router.route("/:username").get(fetchAllVideos)
 
 // Secured Route : Authentication Required
-router.route("/").post(
+router.route("/post").post(
       verifyJWT,
       upload.fields([
             {
@@ -31,6 +31,6 @@ router.route("/").post(
 
 router.route("/delete/:videoId").delete(verifyJWT, deleteAVideo)
 router.route("/update/:videoId").patch(verifyJWT, upload.single("thumbnail"), updateVideoDetails)
-router.route("/publish/:videoId").patch(verifyJWT, togglePublishStatus)
+router.route("/toggle-publish-status/:videoId").patch(verifyJWT, togglePublishStatus)
 
 export default router;
