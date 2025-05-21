@@ -37,6 +37,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 				if (res.status != 200) {
 					throw new Error("Failed to refresh token");
 				}
+				const currentUser = res.data.data?.user;
+				if (currentUser) {
+					setUser(currentUser);
+					localStorage.setItem("user", JSON.stringify(currentUser));
+				} else {
+					console.warn(
+						"User data not found in current-user response, logging out."
+					);
+					logout(); // Clear session if user data is missing
+				}
 			} catch (err) {
 				console.warn("Session refresh failed", err);
 				logout(); // Ensure session is clean if refresh fails
@@ -45,10 +55,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 			}
 		};
 
-		const storedUser = localStorage.getItem("user");
-		if (storedUser) {
-			setUser(JSON.parse(storedUser));
-		}
+		// Comment out or remove the local storage check before initializeAuth
+		// const storedUser = localStorage.getItem("user");
+		// if (storedUser) {
+		// 	setUser(JSON.parse(storedUser));
+		// }
 
 		initializeAuth();
 	}, []);
