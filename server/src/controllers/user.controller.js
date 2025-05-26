@@ -33,7 +33,6 @@ const registerUser = asyncHandler(async (req, res) => {
         req.files.coverImage.length > 0
     ) {
         coverImgLocalPath = await req.files.coverImage[0].path;
-        console.log("Control is in if block");
     }
     console.log(coverImgLocalPath);
     if (!avatarLocalPath) {
@@ -228,7 +227,6 @@ const changeUserPassword = asyncHandler(async (req, res) => {
 });
 
 const getCurrentUser = asyncHandler(async (req, res) => {
-    console.log("Current User", req.user);
     return res.json(
         new APIResponse(
             200,

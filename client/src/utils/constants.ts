@@ -57,7 +57,7 @@ export const VIDEOS = [
 		title: "ETH Beginner Project for Metacrafters Course 👨‍💻",
 		description:
 			"Hi viewers, in this video, I walk you through my project for the eth beginner course. I explain the code I've written, including the subversioning, the smart contract named Metacrafters, the variables, and the mapping data structure. I also demonstrate the mint and burn functions and show how the balances and total supply are updated. Please watch the video to get a clear understanding of the project. Action requested: Watch the video to review and provide feedback.",
-		videoFile:
+		videofile:
 			"https://www.loom.com/embed/9f159044711b42d5b2e0f4bc7c03d373?sid=f720fd2e-807b-4aa4-8e57-d856f3478a80",
 		thumbnail:
 			"https://cdn.loom.com/sessions/thumbnails/9f159044711b42d5b2e0f4bc7c03d373-with-play.gif",
@@ -74,7 +74,7 @@ export const VIDEOS = [
 		title: "Project Presentation for ETH-Avax Intermediate Course 👨‍💻",
 		description:
 			"Hi viewers, I'm Raushan Kumar presenting my project for module 1 of ETH avax intermediate course. I've created a map data structure to manage addresses and balances, with functions for account, deposit, and balance retrieval. The deposit function validates inputs and ensures the minimum deposit amount. Watch to see how the contract handles transactions and validations. Action: Review the project and provide feedback.",
-		videoFile:
+		videofile:
 			"https://www.loom.com/embed/19eb49e645524192b64eeed738b3d5ab?sid=e733f547-384c-4235-b4f3-efbae7c996ec",
 		thumbnail:
 			"https://cdn.loom.com/sessions/thumbnails/19eb49e645524192b64eeed738b3d5ab-with-play.gif",
@@ -91,7 +91,7 @@ export const VIDEOS = [
 		title: "Modern CSS Techniques",
 		description:
 			"Explore modern CSS techniques like Grid, Flexbox, and CSS Variables.",
-		videoFile: "https://example.com/videos/modern-css.mp4",
+		videofile: "https://example.com/videos/modern-css.mp4",
 		thumbnail:
 			"https://images.pexels.com/photos/270373/pexels-photo-270373.jpeg",
 		duration: 845, // 14:05 in seconds
@@ -107,7 +107,7 @@ export const VIDEOS = [
 		title: "10 Healthy Breakfast Ideas",
 		description:
 			"Start your day right with these 10 healthy and delicious breakfast recipes.",
-		videoFile: "https://example.com/videos/healthy-breakfast.mp4",
+		videofile: "https://example.com/videos/healthy-breakfast.mp4",
 		thumbnail:
 			"https://images.pexels.com/photos/376464/pexels-photo-376464.jpeg",
 		duration: 723, // 12:03 in seconds
@@ -123,7 +123,7 @@ export const VIDEOS = [
 		title: "Investing for Beginners",
 		description:
 			"Learn the basics of investing and how to start building your portfolio.",
-		videoFile: "https://example.com/videos/investing-basics.mp4",
+		videofile: "https://example.com/videos/investing-basics.mp4",
 		thumbnail:
 			"https://images.pexels.com/photos/534216/pexels-photo-534216.jpeg",
 		duration: 1562, // 26:02 in seconds

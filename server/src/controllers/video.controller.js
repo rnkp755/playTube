@@ -4,6 +4,7 @@ import { APIResponse } from "../utils/APIResponse.js";
 import { uploadOnCloudinary } from "../utils/Cloudinary.js";
 import { User } from "../models/user.model.js";
 import { Video } from "../models/video.model.js";
+import Fuse from "fuse.js";
 
 const extractPublicIdFromUrl = (imageURL) => {
       try {
@@ -91,7 +92,6 @@ const postAVideo = asyncHandler(async (req, res) => {
             .status(201)
             .json(new APIResponse(201, newVideo, "Video Uploaded Successfully"));
 });
-
 const deleteAVideo = asyncHandler(async (req, res) => {
       const { videoId } = req.params;
       const userId = req.user?._id;
@@ -122,56 +122,82 @@ const deleteAVideo = asyncHandler(async (req, res) => {
             .json(new APIResponse(200, {}, "Video deleted successfully"));
 });
 const fetchAllVideos = asyncHandler(async (req, res) => {
-      const { page = 1, limit = 10, query, sortBy, sortType } = req.query;
+      const {
+            page = 1,
+            limit = 10,
+            query,
+            sortBy = "createdAt",
+            sortType = "desc",
+      } = req.query;
+
       const { username } = req.params;
+      console.log("Query", query);
 
       if (isNaN(page) || isNaN(limit)) {
             throw new APIError(400, "Invalid page or limit parameters");
       }
 
-      const user = await User.findOne({ username });
-      if (!user) throw new APIError(401, "Unauthorized request");
-
-      const queryOptions = {
-            videoOwner: user._id, // Filter by videoOwner using indexed field
-            select: "-__v -updatedAt", // Exclude unwanted fields
+      // Step 1: Build base query to filter videos
+      let baseQuery = {
+            isPublished: true,
       };
 
-      // Add search query if provided
-      if (query) {
-            queryOptions.$text = { $search: query }; // Utilize text search index
+      if (username) {
+            const user = await User.findOne({ username });
+            if (user._id) {
+                  baseQuery.videoOwner = user._id;
+            }
       }
 
       const options = {
-            page,
-            limit,
-            sort: {},
+            skip: (parseInt(page, 10) - 1) * parseInt(limit, 10),
+            limit: parseInt(limit, 10),
+            sort: { [sortBy]: sortType === "asc" ? 1 : -1 },
       };
 
-      if (sortBy && sortType) {
-            options.sort[sortBy] = sortType === "asc" ? 1 : -1;
+      // Step 2: Fetch all videos with basic query and options
+      let videos = await Video.find(baseQuery, null, options)
+            .populate({
+                  path: "videoOwner",
+                  select: "-password -refreshToken -settings -__v -createdAt -updatedAt -watchHistory",
+                  options: { lean: true },
+            })
+            .select("-__v -updatedAt")
+            .lean();
+
+      // Step 3: Apply Fuse.js fuzzy search if 'query' is present
+      if (query) {
+            const fuse = new Fuse(videos, {
+                  includeScore: true,
+                  keys: ["title", "description"],
+            });
+            videos = fuse.search(query).map((result) => result.item);
       }
 
-      const [videos, totalVideos] = await Promise.all([
-            Video.find(queryOptions, null, options),
-            Video.countDocuments(queryOptions),
-      ]);
+      // Step 4: Count videos after filtering
+      const totalVideos = videos.length;
 
-      console.log(videos);
+      // Step 5: Apply pagination after fuzzy filtering
+      const paginatedVideos = videos.slice(
+            options.skip,
+            options.skip + options.limit
+      );
 
-      if (videos.length === 0) throw new APIError(400, "No Videos found");
+      // Step 6: Return response
+      if (paginatedVideos.length === 0) {
+            throw new APIError(400, "No Videos found");
+      }
 
       return res
-            .status(201)
+            .status(200)
             .json(
                   new APIResponse(
                         200,
-                        { videos, totalVideos },
+                        { videos: paginatedVideos, totalVideos },
                         "Videos fetched successfully"
                   )
             );
 });
-
 const updateVideoDetails = asyncHandler(async (req, res) => {
       const { title, description, tags } = req.body;
       const { videoId } = req.params;
@@ -245,6 +271,59 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
             .status(201)
             .json(new APIResponse(201, updatedVideo, "Video updated Successfully"));
 });
+const getVideoById = asyncHandler(async (req, res) => {
+      const { videoId } = req.params;
+
+      const video = await Video.findById(videoId)
+            .populate({
+                  path: "videoOwner",
+                  select: "-password -refreshToken -settings -__v -createdAt -updatedAt -watchHistory",
+                  options: { lean: true },
+            })
+            .select("-__v -updatedAt")
+            .lean();
+
+      if (!video) {
+            throw new APIError(404, "Video not found");
+      }
+      if (!video.isPublished) {
+            throw new APIError(403, "Video is not published");
+      }
+      return res
+            .status(200)
+            .json(new APIResponse(200, video, "Video fetched successfully"));
+});
+const getVideoSuggestions = asyncHandler(async (req, res) => {
+      const { videoId } = req.params;
+
+      const video = await Video.findById(videoId);
+      if (!video) {
+            throw new APIError(404, "Video not found");
+      }
+
+      const suggestions = await Video.find({
+            _id: { $ne: videoId },
+            tags: { $in: video.tags },
+            isPublished: true,
+      })
+            .populate({
+                  path: "videoOwner",
+                  select: "-password -refreshToken -settings -__v -createdAt -updatedAt -watchHistory",
+                  options: { lean: true },
+            })
+            .select("-__v -updatedAt")
+            .limit(10)
+            .lean();
+      return res
+            .status(200)
+            .json(
+                  new APIResponse(
+                        200,
+                        suggestions,
+                        "Video suggestions fetched successfully"
+                  )
+            );
+});
 
 export {
       postAVideo,
@@ -252,4 +331,6 @@ export {
       fetchAllVideos,
       updateVideoDetails,
       togglePublishStatus,
+      getVideoById,
+      getVideoSuggestions,
 };

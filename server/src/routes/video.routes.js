@@ -5,13 +5,17 @@ import {
     fetchAllVideos,
     updateVideoDetails,
     togglePublishStatus,
+    getVideoById,
+    getVideoSuggestions,
 } from "../controllers/video.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { verifyAccessToken } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
-router.route("/:username").get(fetchAllVideos);
+router.route("/:username?").get(fetchAllVideos);
+router.route("/id/:videoId").get(getVideoById);
+router.route("/suggestions/:videoId").get(getVideoSuggestions);
 
 // Secured Route : Authentication Required
 router.route("/post").post(
@@ -28,7 +32,6 @@ router.route("/post").post(
     ]),
     postAVideo
 );
-
 router.route("/delete/:videoId").delete(verifyAccessToken, deleteAVideo);
 router
     .route("/update/:videoId")

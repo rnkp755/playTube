@@ -14,15 +14,16 @@ const Navbar: React.FC = () => {
 
 	const handleSearch = (e: React.FormEvent) => {
 		e.preventDefault();
-		// In a real app, this would navigate to search results
 		console.log("Searching for:", searchQuery);
-		// navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+		if (searchQuery.trim()) {
+			navigate(`/?query=${encodeURIComponent(searchQuery)}`);
+		}
 		setSearchQuery("");
 	};
 
 	const handleLogout = () => {
 		logout();
-		navigate('/login');
+		navigate("/login");
 		setShowUserMenu(false);
 	};
 

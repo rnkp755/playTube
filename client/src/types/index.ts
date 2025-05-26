@@ -1,8 +1,9 @@
 // User related types
 export interface User {
+	_id: string;
 	username: string;
 	email: string;
-	fullname: string;
+	fullName: string;
 	avatar: File | string;
 	coverImage: File | string;
 }
@@ -12,7 +13,7 @@ export interface Video {
 	_id: string;
 	title: string;
 	description: string;
-	videoFile: string;
+	videofile: string;
 	thumbnail: string;
 	duration: number;
 	views: number;
@@ -21,7 +22,7 @@ export interface Video {
 	tags: string[];
 	playlist?: Playlist;
 	createdAt: string;
-	updatedAt: string;
+	updatedAt?: string;
 }
 
 // Playlist related types
