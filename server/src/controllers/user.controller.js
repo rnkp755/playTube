@@ -130,35 +130,22 @@ const loginUser = asyncHandler(async (req, res) => {
 
 const logoutUser = asyncHandler(async (req, res) => {
     console.log("Logout ", req.user._id);
-    // Output : Logout  undefined
-    const user = await User.findByIdAndUpdate(
+
+    await User.findByIdAndUpdate(
         req.user._id,
-        {
-            $unset: {
-                refreshToken: 1,
-            },
-        },
-        {
-            new: true,
-        }
+        { $unset: { refreshToken: 1 } },
+        { new: true }
     );
 
-    const accessTokenOptions = {
+    const cookieOptions = {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        maxAge: 24 * 60 * 60 * 1000, // 1 day
-    };
-
-    const refreshTokenOptions = {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        maxAge: 10 * 24 * 60 * 60 * 1000, // 10 days
     };
 
     return res
         .status(200)
-        .clearCookie("accessToken", accessTokenOptions)
-        .clearCookie("refreshToken", refreshTokenOptions)
+        .clearCookie("accessToken", cookieOptions)
+        .clearCookie("refreshToken", cookieOptions)
         .json(new APIResponse(200, {}, "User logged out successfully"));
 });
 
@@ -243,7 +230,11 @@ const changeUserPassword = asyncHandler(async (req, res) => {
 const getCurrentUser = asyncHandler(async (req, res) => {
     console.log("Current User", req.user);
     return res.json(
-        new APIResponse(200, req.user, "User Data retrieved Successfully")
+        new APIResponse(
+            200,
+            { user: req.user },
+            "User Data retrieved Successfully"
+        )
     );
 });
 

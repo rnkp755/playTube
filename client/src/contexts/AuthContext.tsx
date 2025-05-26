@@ -31,7 +31,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 	useEffect(() => {
 		const initializeAuth = async () => {
 			try {
-				const res = await API.get(`${SERVER_URL}/current-user`, {
+				const res = await API.get(`${SERVER_URL}/users/current-user`, {
 					withCredentials: true,
 				});
 				if (res.status != 200) {
@@ -54,12 +54,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 				setIsLoading(false);
 			}
 		};
-
-		// Comment out or remove the local storage check before initializeAuth
-		// const storedUser = localStorage.getItem("user");
-		// if (storedUser) {
-		// 	setUser(JSON.parse(storedUser));
-		// }
 
 		initializeAuth();
 	}, []);
@@ -111,9 +105,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
 	const logout = async () => {
 		try {
-			const response = await API.post(`${SERVER_URL}/users/logout`, {
-				withCredentials: true,
-			});
+			const response = await API.post(
+				`${SERVER_URL}/users/logout`,
+				{},
+				{
+					withCredentials: true,
+				}
+			);
 			if (response.status != 200) {
 				return Promise.reject(new Error("Logout failed"));
 			}
@@ -121,6 +119,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 			setUser(null);
 		} catch (error) {
 			console.log("Error while logging out", error);
+			// Even if logout fails on server, clear local state
+			localStorage.removeItem("user");
+			setUser(null);
 		}
 	};
 
