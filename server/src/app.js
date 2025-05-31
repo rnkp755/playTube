@@ -30,4 +30,18 @@ app.use("/api/v1/users", userRouter);
 app.use("/api/v1/tweets", tweetRouter);
 app.use("/api/v1/videos", videoRouter);
 
+app.get("/api/v1/health", (req, res) => {
+    res.status(200).json({
+        success: true,
+        message: "Server is running",
+    });
+});
+
+app.get("/", (req, res) => {
+    res.status(200).json({
+        success: true,
+        message: "Welcome to VidShare API",
+    });
+});
+
 export default app;
