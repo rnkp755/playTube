@@ -21,7 +21,7 @@ const Home: React.FC = () => {
 			try {
 				console.log("Fetching videos with query:", query);
 				const response = await API.get(
-					`${SERVER_URL}/videos${query ? `?query=${query}` : ""}`
+					`/videos${query ? `?query=${query}` : ""}`
 				);
 				console.log("Fetched videos:", response.data);
 				const videos = response.data?.data?.videos as Video[];

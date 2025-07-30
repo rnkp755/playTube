@@ -227,6 +227,11 @@ const changeUserPassword = asyncHandler(async (req, res) => {
 });
 
 const getCurrentUser = asyncHandler(async (req, res) => {
+    // Check if user exists in request (added by auth middleware)
+    if (!req.user) {
+        throw new APIError(401, "User not authenticated");
+    }
+
     return res.json(
         new APIResponse(
             200,
@@ -236,6 +241,71 @@ const getCurrentUser = asyncHandler(async (req, res) => {
     );
 });
 
+const checkAuthStatus = asyncHandler(async (req, res) => {
+    // This endpoint checks auth status without requiring authentication
+    // It will return user data if authenticated, null if not
+    try {
+        const accessToken =
+            req.cookies?.accessToken ||
+            req.header("Authorization")?.replace("Bearer ", "");
+
+        if (!accessToken) {
+            return res.json(
+                new APIResponse(
+                    200,
+                    { user: null, isAuthenticated: false },
+                    "Not authenticated"
+                )
+            );
+        }
+
+        const decodedToken = jwt.verify(
+            accessToken,
+            process.env.ACCESS_TOKEN_SECRET
+        );
+
+        if (!decodedToken) {
+            return res.json(
+                new APIResponse(
+                    200,
+                    { user: null, isAuthenticated: false },
+                    "Invalid token"
+                )
+            );
+        }
+
+        const user = await User.findById(decodedToken._id).select(
+            "-password -refreshToken -__v -createdAt -updatedAt"
+        );
+
+        if (!user) {
+            return res.json(
+                new APIResponse(
+                    200,
+                    { user: null, isAuthenticated: false },
+                    "User not found"
+                )
+            );
+        }
+
+        return res.json(
+            new APIResponse(
+                200,
+                { user, isAuthenticated: true },
+                "User authenticated"
+            )
+        );
+    } catch (error) {
+        // Token expired or invalid, but don't throw error
+        return res.json(
+            new APIResponse(
+                200,
+                { user: null, isAuthenticated: false },
+                "Authentication failed"
+            )
+        );
+    }
+});
 const updateUserDetails = asyncHandler(async (req, res) => {
     const { fullName, username } = req.body;
 
@@ -405,6 +475,7 @@ export {
     refreshAccessToken,
     changeUserPassword,
     getCurrentUser,
+    checkAuthStatus,
     updateUserDetails,
     updateUserAvatar,
     updateUserCoverImage,

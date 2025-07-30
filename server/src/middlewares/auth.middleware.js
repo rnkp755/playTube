@@ -1,5 +1,6 @@
 import { User } from "../models/user.model.js";
 import { APIError } from "../utils/apiError.js";
+import asyncHandler from "../utils/asyncHandler.js";
 import jwt from "jsonwebtoken";
 
 export const generateAccessAndRefreshTokens = async (userId) => {
@@ -18,7 +19,7 @@ export const generateAccessAndRefreshTokens = async (userId) => {
     }
 };
 
-export const verifyAccessToken = async (req, res, next) => {
+export const verifyAccessToken = asyncHandler(async (req, res, next) => {
     try {
         console.log("Cookies: ", req.cookies);
         const accessToken =
@@ -46,31 +47,32 @@ export const verifyAccessToken = async (req, res, next) => {
     } catch (error) {
         return verifyRefreshToken(req, res, next);
     }
-};
+});
 
-export const verifyRefreshToken = async (req, res, next) => {
-    console.log("Verifying Refresh Token");
-    const incomingRefreshToken =
-        req.cookies.refreshToken || req.body.refreshToken;
-
-    if (!incomingRefreshToken) throw new APIError(401, "Unathorized Access");
-
-    const decodedToken = jwt.verify(
-        incomingRefreshToken,
-        process.env.REFRESH_TOKEN_SECRET
-    );
-
-    if (!decodedToken || !decodedToken["_id"])
-        throw new APIError(401, "Unathorized Access");
-
-    const user = await User.findById(decodedToken._id);
-
-    if (!user) throw new APIError(401, "Invalid refresh token");
-
-    if (incomingRefreshToken !== user?.refreshToken)
-        throw new APIError(401, "Refesh Token Invalid or Expired");
-
+export const verifyRefreshToken = asyncHandler(async (req, res, next) => {
     try {
+        console.log("Verifying Refresh Token");
+        const incomingRefreshToken =
+            req.cookies.refreshToken || req.body.refreshToken;
+
+        if (!incomingRefreshToken)
+            throw new APIError(401, "Unauthorized Access");
+
+        const decodedToken = jwt.verify(
+            incomingRefreshToken,
+            process.env.REFRESH_TOKEN_SECRET
+        );
+
+        if (!decodedToken || !decodedToken["_id"])
+            throw new APIError(401, "Unauthorized Access");
+
+        const user = await User.findById(decodedToken._id);
+
+        if (!user) throw new APIError(401, "Invalid refresh token");
+
+        if (incomingRefreshToken !== user?.refreshToken)
+            throw new APIError(401, "Refresh Token Invalid or Expired");
+
         const { newAccessToken, newRefreshToken } =
             await generateAccessAndRefreshTokens(user._id);
 
@@ -95,9 +97,6 @@ export const verifyRefreshToken = async (req, res, next) => {
         req.user = user;
         next();
     } catch (error) {
-        throw new APIError(
-            501,
-            error?.message || "Error while restarting session"
-        );
+        throw new APIError(401, error?.message || "Authentication failed");
     }
-};
+});

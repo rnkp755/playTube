@@ -6,6 +6,7 @@ import {
     refreshAccessToken,
     changeUserPassword,
     getCurrentUser,
+    checkAuthStatus,
     updateUserDetails,
     updateUserAvatar,
     updateUserCoverImage,
@@ -30,6 +31,9 @@ router.route("/register").post(
     registerUser
 );
 router.route("/login").post(loginUser);
+
+// Public routes - no authentication required
+router.route("/auth-status").get(checkAuthStatus);
 
 // Secured Route : Authentication Required
 router.route("/logout").post(verifyAccessToken, logoutUser);

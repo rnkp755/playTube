@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { Video, Comment } from "../../types";
+import { Video } from "../../types";
 import { videoService } from "../../services/videoService";
 import { useAuth } from "../../contexts/AuthContext";
-import VideoPlayer from "../../components/Video/VideoPlayer";
+import VideoPlayer, {
+	VideoPlayerRef,
+} from "../../components/Video/VideoPlayer";
 import VideoCard from "../../components/Video/VideoCard";
 import CommentSection from "../../components/Video/CommentSection";
 import VideoChatAI from "../../components/Video/VideoChatAI";
@@ -19,7 +21,6 @@ import {
 	Bot,
 } from "lucide-react";
 import API from "../../utils/axios";
-import { SERVER_URL } from "../../utils/constants";
 
 const VideoDetail: React.FC = () => {
 	const { videoId } = useParams<{ videoId: string }>();
@@ -35,7 +36,7 @@ const VideoDetail: React.FC = () => {
 	>("description");
 	const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 	const [isDeleting, setIsDeleting] = useState(false);
-	const [playerRef, setPlayerRef] = useState<HTMLVideoElement | null>(null);
+	const playerRef = useRef<VideoPlayerRef>(null);
 
 	// Format date
 	const formatDate = (dateString: string): string => {
@@ -68,9 +69,7 @@ const VideoDetail: React.FC = () => {
 
 			try {
 				// Fetch video
-				const response = await API.get(
-					`${SERVER_URL}/videos/id/${videoId}`
-				);
+				const response = await API.get(`/videos/id/${videoId}`);
 				const videoData: Video = response.data.data as Video;
 				if (!videoData) {
 					throw new Error("Video not found");
@@ -79,7 +78,7 @@ const VideoDetail: React.FC = () => {
 
 				// Fetch suggestions
 				const suggestionsResponse = await API.get(
-					`${SERVER_URL}/videos/suggestions/${videoData._id}`
+					`/videos/suggestions/${videoData._id}`
 				);
 				const suggestionsData: Video[] = suggestionsResponse.data
 					.data as Video[];
@@ -118,9 +117,14 @@ const VideoDetail: React.FC = () => {
 
 	// Handle timestamp click in AI chat
 	const handleTimestampClick = (seconds: number) => {
-		if (playerRef) {
-			playerRef.currentTime = seconds;
-			playerRef.play();
+		if (playerRef.current) {
+			playerRef.current.seekTo(seconds);
+			// Optional: Show a brief notification that we've jumped to the timestamp
+			console.log(
+				`Seeking to ${Math.floor(seconds / 60)}:${(seconds % 60)
+					.toString()
+					.padStart(2, "0")}`
+			);
 		}
 	};
 
@@ -154,8 +158,9 @@ const VideoDetail: React.FC = () => {
 					{/* Video player */}
 					<div className="rounded-lg overflow-hidden">
 						<VideoPlayer
+							ref={playerRef}
 							videoUrl={video.videofile}
-							onTimeUpdate={(time) => {
+							onTimeUpdate={(_time) => {
 								// Handle time updates if needed
 							}}
 						/>
@@ -181,6 +186,21 @@ const VideoDetail: React.FC = () => {
 								<button className="flex items-center gap-1 px-3 py-1.5 rounded-full hover:bg-card-hover">
 									<Share2 className="w-5 h-5" />
 									<span>Share</span>
+								</button>
+								<button
+									className="flex items-center gap-1 px-3 py-1.5 rounded-full hover:bg-card-hover"
+									onClick={() => {
+										setActiveTab("chat");
+										document
+											.querySelector("#tabs")
+											?.scrollIntoView({
+												behavior: "smooth",
+												block: "start",
+											});
+									}}
+								>
+									<Bot className="w-5 h-5" />
+									<span>Chat with AI</span>
 								</button>
 
 								{/* Edit/Delete buttons for owner */}
@@ -214,8 +234,10 @@ const VideoDetail: React.FC = () => {
 							<Link to={`/profile/${video.videoOwner.username}`}>
 								<img
 									src={
-										video.videoOwner.avatar ||
-										"https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg"
+										typeof video.videoOwner.avatar ===
+										"string"
+											? video.videoOwner.avatar
+											: "https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg"
 									}
 									alt={video.videoOwner.username}
 									className="w-12 h-12 rounded-full object-cover"
@@ -237,7 +259,7 @@ const VideoDetail: React.FC = () => {
 					</div>
 
 					{/* Tabs */}
-					<div className="mt-6 border-b border-border">
+					<div className="mt-6 border-b border-border" id="tabs">
 						<div className="flex">
 							<button
 								className={`px-4 py-2 font-medium ${

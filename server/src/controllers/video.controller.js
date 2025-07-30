@@ -130,6 +130,7 @@ const fetchAllVideos = asyncHandler(async (req, res) => {
         sortType = "desc",
     } = req.query;
 
+
     const { username } = req.params;
 
     if (isNaN(page) || isNaN(limit)) {

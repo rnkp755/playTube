@@ -31,25 +31,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 	useEffect(() => {
 		const initializeAuth = async () => {
 			try {
-				const res = await API.get(`${SERVER_URL}/users/current-user`, {
+				// Check if we have user data in localStorage first
+				const storedUser = localStorage.getItem("user");
+				if (storedUser) {
+					try {
+						const parsedUser = JSON.parse(storedUser);
+						setUser(parsedUser);
+					} catch (parseError) {
+						console.warn(
+							"Invalid user data in localStorage, clearing..."
+						);
+						localStorage.removeItem("user");
+					}
+				}
+
+				// Use the new auth-status endpoint that doesn't trigger infinite loops
+				const res = await API.get(`/users/auth-status`, {
 					withCredentials: true,
 				});
-				if (res.status != 200) {
-					throw new Error("Failed to refresh token");
-				}
-				const currentUser = res.data.data?.user;
-				if (currentUser) {
-					setUser(currentUser);
-					localStorage.setItem("user", JSON.stringify(currentUser));
-				} else {
-					console.warn(
-						"User data not found in current-user response, logging out."
-					);
-					logout(); // Clear session if user data is missing
+
+				if (res.status === 200) {
+					const { user: currentUser, isAuthenticated } =
+						res.data.data;
+					if (isAuthenticated && currentUser) {
+						setUser(currentUser);
+						localStorage.setItem(
+							"user",
+							JSON.stringify(currentUser)
+						);
+					} else {
+						// User is not authenticated
+						localStorage.removeItem("user");
+						setUser(null);
+					}
 				}
 			} catch (err) {
-				console.warn("Session refresh failed", err);
-				logout(); // Ensure session is clean if refresh fails
+				console.warn("Session check failed", err);
+				// Clear any stale data but don't show error to user
+				localStorage.removeItem("user");
+				setUser(null);
 			} finally {
 				setIsLoading(false);
 			}
@@ -61,7 +81,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 	const login = async (email: string, password: string) => {
 		setIsLoading(true);
 		try {
-			const response = await API.post(`${SERVER_URL}/users/login`, {
+			const response = await API.post(`/users/login`, {
 				email,
 				password,
 			});
@@ -83,15 +103,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 			for (const key in userData) {
 				formData.append(key, userData[key]);
 			}
-			const response = await API.post(
-				`${SERVER_URL}/users/register`,
-				formData,
-				{
-					headers: {
-						"Content-Type": "multipart/form-data",
-					},
-				}
-			);
+			const response = await API.post(`/users/register`, formData, {
+				headers: {
+					"Content-Type": "multipart/form-data",
+				},
+			});
 			if (response.status != 201) {
 				return Promise.reject(new Error("User registration failed"));
 			}
@@ -105,21 +121,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
 	const logout = async () => {
 		try {
-			const response = await API.post(
-				`${SERVER_URL}/users/logout`,
-				{},
-				{
-					withCredentials: true,
+			// Only call server logout if user is currently authenticated
+			if (user) {
+				const response = await API.post(
+					`/users/logout`,
+					{},
+					{
+						withCredentials: true,
+					}
+				);
+				if (response.status != 200) {
+					console.warn(
+						"Logout API call failed, but clearing local state"
+					);
 				}
-			);
-			if (response.status != 200) {
-				return Promise.reject(new Error("Logout failed"));
 			}
-			localStorage.removeItem("user");
-			setUser(null);
 		} catch (error) {
 			console.log("Error while logging out", error);
 			// Even if logout fails on server, clear local state
+		} finally {
+			// Always clear local state regardless of server response
 			localStorage.removeItem("user");
 			setUser(null);
 		}
