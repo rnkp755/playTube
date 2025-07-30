@@ -1,6 +1,6 @@
 // Tag suggestions
 // export const SERVER_URL = "http://localhost:8000/api/v1";
-export const SERVER_URL = "https://playtube-server.raushan.info/api/v1";
+export const SERVER_URL = "https://playtube-server.onrender.com/api/v1";
 export const TAG_SUGGESTIONS = [
 	"Science & Technology",
 	"Programming",
