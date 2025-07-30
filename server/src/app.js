@@ -7,7 +7,7 @@ const app = express();
 
 app.use(
     cors({
-        origin: ["http://localhost:5173", "https://vidshare.raushan.info/"],
+        origin: ["http://localhost:5173", "https://vidshare.raushan.info"],
         credentials: true,
     })
 );
