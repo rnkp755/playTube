@@ -41,11 +41,13 @@ const Home: React.FC = () => {
 
 	return (
 		<div>
-			<h1 className="text-2xl font-bold mb-6">Recommended</h1>
+			<h1 className="text-2xl font-bold mb-6">
+				Recommended
+			</h1>
 
 			{isLoading ? (
 				<div className="flex justify-center items-center h-60">
-					<Loader size="lg" />
+					<Loader size="lg"  />
 				</div>
 			) : error ? (
 				<div className="p-4 bg-error/10 rounded-lg text-center">
